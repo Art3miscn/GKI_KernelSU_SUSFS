@@ -654,7 +654,7 @@ jobs:
           [ -f "$F" ] || { echo "no lsm_hook.c, skip"; exit 0; }
           if grep -q 'struct lsm_id' include/linux/lsm_hooks.h 2>/dev/null; then
             if grep -q 'security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), "ksu")' "$F"; then
-              sed -i 's|security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), "ksu");|security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), \\&ksu_lsmid);|' "$F"
+              sed -i 's|security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), "ksu");|security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), \&ksu_lsmid);|' "$F"
               sed -i 's|^void __init ksu_lsm_hook_init(void)$|static const struct lsm_id ksu_lsmid = { .name = "ksu", .id = 0 };\n\nvoid __init ksu_lsm_hook_init(void)|' "$F"
               echo "lsm_hook.c: patched to struct lsm_id API"
             else
