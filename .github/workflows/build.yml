@@ -646,6 +646,24 @@ jobs:
             echo "KSU_LATEST_COMMIT_DATE=未知" >> $GITHUB_ENV
           fi
 
+      - name: 修补 SukiSU LSM API（新内核 security_add_hooks 需要 struct lsm_id）
+        if: inputs.ksu_mode != '禁用KSU'
+        working-directory: ${{ env.KERNEL_ROOT }}/common
+        run: |
+          F=drivers/kernelsu/hook/lsm_hook.c
+          [ -f "$F" ] || { echo "no lsm_hook.c, skip"; exit 0; }
+          if grep -q 'struct lsm_id' include/linux/lsm_hooks.h 2>/dev/null; then
+            if grep -q 'security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), "ksu")' "$F"; then
+              sed -i 's|security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), "ksu");|security_add_hooks(ksu_hooks, ARRAY_SIZE(ksu_hooks), \\&ksu_lsmid);|' "$F"
+              sed -i 's|^void __init ksu_lsm_hook_init(void)$|static const struct lsm_id ksu_lsmid = { .name = "ksu", .id = 0 };\n\nvoid __init ksu_lsm_hook_init(void)|' "$F"
+              echo "lsm_hook.c: patched to struct lsm_id API"
+            else
+              echo "lsm_hook.c already new API, no patch"
+            fi
+          else
+            echo "kernel has no struct lsm_id, keep old API"
+          fi
+
       - name: 配置 SukiSU 管理器信息
         if: (inputs.ksu_variant == 'SukiSU' || inputs.ksu_variant == 'SukiSU(40726)' || inputs.ksu_variant == 'SukiSU(40548)') && inputs.ksu_mode != '禁用KSU'
         working-directory: ${{ env.KERNEL_ROOT }}/KernelSU
